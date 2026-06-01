@@ -9,11 +9,34 @@ load_dotenv(BASE_DIR / ".env")
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-only-secret-key")
 DEBUG = os.getenv("DJANGO_DEBUG", "True").lower() == "true"
+
+
+def normalize_host(value):
+    value = value.strip().rstrip("/")
+    if not value:
+        return ""
+    if value == "*":
+        return value
+    if "://" in value:
+        return urlparse(value).hostname or ""
+    return value.split("/")[0].split(":")[0]
+
+
 ALLOWED_HOSTS = [
-    host.strip()
-    for host in os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
-    if host.strip()
+    host
+    for host in [
+        normalize_host(item)
+        for item in os.getenv(
+            "DJANGO_ALLOWED_HOSTS",
+            "localhost,127.0.0.1",
+        ).split(",")
+    ]
+    if host
 ]
+
+render_external_hostname = normalize_host(os.getenv("RENDER_EXTERNAL_HOSTNAME", ""))
+if render_external_hostname and render_external_hostname not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(render_external_hostname)
 
 INSTALLED_APPS = [
     "daphne",
