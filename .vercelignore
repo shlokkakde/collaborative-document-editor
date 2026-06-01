@@ -1,0 +1,17 @@
+.codex-artifacts/
+.env
+.venv/
+venv/
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+backend/.env
+backend/.venv/
+backend/db.sqlite3
+backend/**/__pycache__/
+backend/**/*.pyc
+
+.pytest_cache/
+e2e/
+docker-compose.yml

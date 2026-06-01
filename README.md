@@ -49,6 +49,12 @@ npm run dev
 
 4. Open `http://localhost:5173`.
 
+## Deploy Frontend to Vercel
+
+This repo includes a root `vercel.json` for deploying the Vite frontend to Vercel. The Django Channels backend should run on a long-running ASGI host because Vercel Functions do not act as a WebSocket server.
+
+See [docs/VERCEL_DEPLOYMENT.md](docs/VERCEL_DEPLOYMENT.md) for the exact Vercel environment variables and backend hosting notes.
+
 ## Quick SQLite Demo
 
 If you do not want to run Docker, remove or comment `DATABASE_URL` and `REDIS_URL` in `backend/.env`, then run migrations and the Django server. The app will use SQLite and the in-memory Channels layer.

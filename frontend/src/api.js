@@ -1,5 +1,19 @@
-export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+const isLocalDevelopment =
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1";
+
+function withoutTrailingSlash(value) {
+  return value ? value.replace(/\/$/, "") : "";
+}
+
+export const API_BASE_URL = withoutTrailingSlash(
+  import.meta.env.VITE_API_BASE_URL ||
+    (isLocalDevelopment ? "http://localhost:8000" : ""),
+);
+
+export const WS_BASE_URL = withoutTrailingSlash(
+  import.meta.env.VITE_WS_BASE_URL || API_BASE_URL || window.location.origin,
+);
 
 async function request(path, options = {}) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -51,9 +65,9 @@ export function deleteDocument(documentId) {
 }
 
 export function websocketUrl(documentId, clientId, name) {
-  const apiUrl = new URL(API_BASE_URL);
-  apiUrl.protocol = apiUrl.protocol === "https:" ? "wss:" : "ws:";
-  apiUrl.pathname = `/ws/documents/${documentId}/`;
-  apiUrl.search = new URLSearchParams({ clientId, name }).toString();
-  return apiUrl.toString();
+  const wsUrl = new URL(WS_BASE_URL);
+  wsUrl.protocol = wsUrl.protocol === "https:" ? "wss:" : "ws:";
+  wsUrl.pathname = `/ws/documents/${documentId}/`;
+  wsUrl.search = new URLSearchParams({ clientId, name }).toString();
+  return wsUrl.toString();
 }
