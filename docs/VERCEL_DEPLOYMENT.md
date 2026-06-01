@@ -12,11 +12,11 @@ References:
 
 ## Frontend on Vercel
 
-Connect the GitHub repository to Vercel and keep the project root as the repository root. The root `vercel.json` handles the frontend build:
+Connect the GitHub repository to Vercel and set the Vercel **Root Directory** to `frontend`. The root `vercel.json` handles the frontend build:
 
-- Install command: `cd frontend && npm ci`
-- Build command: `cd frontend && npm run build`
-- Output directory: `frontend/dist`
+- Install command: `npm ci`
+- Build command: `npm run build`
+- Output directory: `dist`
 - SPA route rewrite for `/documents/:id`
 
 ## Required Vercel Environment Variables
