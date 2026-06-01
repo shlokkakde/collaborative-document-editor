@@ -16,6 +16,12 @@ export const WS_BASE_URL = withoutTrailingSlash(
 );
 
 async function request(path, options = {}) {
+  if (!API_BASE_URL) {
+    throw new Error(
+      "Missing VITE_API_BASE_URL. Set it in Vercel to your Render backend URL, then redeploy.",
+    );
+  }
+
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: {
       "Content-Type": "application/json",
