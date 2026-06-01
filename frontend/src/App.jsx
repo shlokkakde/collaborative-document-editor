@@ -94,6 +94,8 @@ export default function App() {
   const [query, setQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [connection, setConnection] = useState("idle");
+  const [saveState, setSaveState] = useState("saved");
+  const [reconnectTick, setReconnectTick] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [presence, setPresence] = useState({});
@@ -108,6 +110,10 @@ export default function App() {
   const sendTimerRef = useRef(null);
   const titleTimerRef = useRef(null);
   const shareTimerRef = useRef(null);
+  const reconnectTimerRef = useRef(null);
+  const reconnectAttemptRef = useRef(0);
+  const httpSaveInFlightRef = useRef(false);
+  const httpSavePendingRef = useRef(false);
   const applyingRemoteRef = useRef(false);
   const latestDraftRef = useRef({ title: "", content: "" });
 
@@ -189,9 +195,19 @@ export default function App() {
     const socket = new WebSocket(websocketUrl(activeId, clientId, clientName));
     socketRef.current = socket;
 
-    socket.addEventListener("open", () => setConnection("live"));
+    socket.addEventListener("open", () => {
+      reconnectAttemptRef.current = 0;
+      setConnection("live");
+    });
     socket.addEventListener("close", () => {
-      if (socketRef.current === socket) setConnection("offline");
+      if (socketRef.current !== socket || cancelled) return;
+      setConnection("offline");
+      const delay = Math.min(10000, 1000 * 2 ** reconnectAttemptRef.current);
+      reconnectAttemptRef.current += 1;
+      window.clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = window.setTimeout(() => {
+        if (!cancelled) setReconnectTick((value) => value + 1);
+      }, delay);
     });
     socket.addEventListener("error", () => setConnection("error"));
     socket.addEventListener("message", (event) => {
@@ -200,6 +216,7 @@ export default function App() {
       if (message.type === "document.snapshot") {
         applyingRemoteRef.current = true;
         setActiveDocument(message.document);
+        setSaveState("saved");
         setTitle(message.document.title);
         setContent(message.document.content);
         latestDraftRef.current = {
@@ -211,6 +228,7 @@ export default function App() {
 
       if (message.type === "document.update") {
         setActiveDocument(message.document);
+        setSaveState("saved");
         setDocuments((current) =>
           current.map((doc) =>
             doc.id === message.document.id
@@ -259,18 +277,58 @@ export default function App() {
 
     return () => {
       cancelled = true;
+      window.clearTimeout(reconnectTimerRef.current);
       if (socketRef.current === socket) socketRef.current = null;
       socket.close();
     };
-  }, [activeId, clientId, clientName]);
+  }, [activeId, clientId, clientName, reconnectTick]);
 
   useEffect(() => {
     latestDraftRef.current = { title, content };
   }, [title, content]);
 
+  const persistDraftOverHttp = useCallback(async () => {
+    if (!activeId) return;
+    if (httpSaveInFlightRef.current) {
+      httpSavePendingRef.current = true;
+      return;
+    }
+
+    httpSaveInFlightRef.current = true;
+    setSaveState("saving");
+    try {
+      let response;
+      do {
+        httpSavePendingRef.current = false;
+        response = await updateDocument(activeId, { ...latestDraftRef.current });
+      } while (httpSavePendingRef.current);
+
+      if (response) {
+        setActiveDocument(response.document);
+        setDocuments((current) =>
+          current.map((doc) =>
+            doc.id === response.document.id
+              ? { ...doc, ...response.document }
+              : doc,
+          ),
+        );
+      }
+      setSaveState("saved");
+    } catch {
+      setSaveState("error");
+    } finally {
+      httpSaveInFlightRef.current = false;
+    }
+  }, [activeId]);
+
   const sendDraft = useCallback(() => {
+    if (!activeId) return;
+    setSaveState("saving");
     const socket = socketRef.current;
-    if (!socket || socket.readyState !== WebSocket.OPEN) return;
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+      persistDraftOverHttp();
+      return;
+    }
     socket.send(
       JSON.stringify({
         type: "document.update",
@@ -278,7 +336,7 @@ export default function App() {
         content: latestDraftRef.current.content,
       }),
     );
-  }, []);
+  }, [activeId, persistDraftOverHttp]);
 
   const scheduleDraftSend = useCallback(() => {
     if (applyingRemoteRef.current) return;
@@ -365,9 +423,11 @@ export default function App() {
 
   const handleManualSave = async () => {
     if (!activeId) return;
+    setSaveState("saving");
     const response = await updateDocument(activeId, { title, content });
     setActiveDocument(response.document);
     await refreshDocuments();
+    setSaveState("saved");
   };
 
   const handleShare = async () => {
@@ -467,12 +527,11 @@ export default function App() {
     error: "Connection issue",
   }[connection];
   const connectionIcon = connection === "live" ? <Wifi /> : <WifiOff />;
-  const savedLabel =
-    connection === "live"
-      ? "Synced"
-      : connection === "connecting"
-        ? "Connecting"
-        : "Offline";
+  const savedLabel = {
+    saving: "Saving...",
+    saved: connection === "live" ? "Synced" : "Saved",
+    error: "Save failed",
+  }[saveState];
 
   return (
     <main className="app-shell">
