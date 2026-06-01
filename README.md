@@ -62,7 +62,7 @@ For Render backend deployment, use `backend` as the root directory, `pip install
 If you do not want to run Docker, remove or comment `DATABASE_URL` and `REDIS_URL` in `backend/.env`, then run migrations and the Django server. The app will use SQLite and the in-memory Channels layer.
 
 ## API
-
+BACKEND: https://collab-doc-backend-2m1j.onrender.com
 - `GET /api/documents/` lists documents.
 - `POST /api/documents/` creates a document.
 - `GET /api/documents/<id>/` loads a document.
