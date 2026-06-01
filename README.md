@@ -55,6 +55,8 @@ This repo includes a root `vercel.json` for deploying the Vite frontend to Verce
 
 See [docs/VERCEL_DEPLOYMENT.md](docs/VERCEL_DEPLOYMENT.md) for the exact Vercel environment variables and backend hosting notes.
 
+For Render backend deployment, use `backend` as the root directory, `pip install -r requirements.txt` as the build command, and `bash start.sh` as the start command.
+
 ## Quick SQLite Demo
 
 If you do not want to run Docker, remove or comment `DATABASE_URL` and `REDIS_URL` in `backend/.env`, then run migrations and the Django server. The app will use SQLite and the in-memory Channels layer.

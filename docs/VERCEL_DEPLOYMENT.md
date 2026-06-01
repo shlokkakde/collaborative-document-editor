@@ -50,6 +50,25 @@ REDIS_URL=redis://...
 
 Also include your production Vercel domain in `CORS_ALLOWED_ORIGINS`, otherwise browser requests from the deployed frontend will be blocked.
 
+## Render Backend Settings
+
+Use these settings for the Render Web Service:
+
+```text
+Root Directory: backend
+Runtime: Python
+Build Command: pip install -r requirements.txt
+Start Command: bash start.sh
+```
+
+The backend includes `backend/.python-version` to pin Render to Python 3.13. If Render still builds with Python 3.14, add this environment variable in Render:
+
+```text
+PYTHON_VERSION=3.13.5
+```
+
+Do not use `gunicorn` for this backend. This project uses Django Channels, so Render must start Daphne through `bash start.sh`.
+
 ## Local Check Before Deploying
 
 ```powershell
